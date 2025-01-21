@@ -88,40 +88,55 @@ def login():
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 
+# @app.route("/upload", methods=["POST"])
+# def upload():
+#     try:
+#         if 'file' not in request.files:
+#             return jsonify({"error": "No file part in the request"}), 400
+#         file = request.files['file']
+
+#         if file.filename == '':
+#             return jsonify({"error": "No file selected for uploading"}), 400
+
+#         if file.content_type != 'application/pdf':
+#             return jsonify({"error": "Only PDF files are allowed"}), 400
+
+#         result = cloudinary.uploader.upload(file, resource_type="auto")
+
+#         return jsonify({
+#             "message": "File uploaded successfully",
+#             "url": result.get("secure_url")
+#         }), 200
+
+#     except Exception as e:
+#         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+
 @app.route("/upload", methods=["POST"])
 def upload():
     try:
         if 'file' not in request.files:
             return jsonify({"error": "No file part in the request"}), 400
-        file = request.files['file']
 
+        file = request.files['file']
         if file.filename == '':
             return jsonify({"error": "No file selected for uploading"}), 400
 
-        if file.content_type != 'application/pdf':
-            return jsonify({"error": "Only PDF files are allowed"}), 400
+        allowed_types = ['text/csv', 'application/pdf', 
+                         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+        allowed_extensions = ['.csv', '.pdf', '.xlsx']
+        
+        if not (file.content_type in allowed_types or file.filename.endswith(tuple(allowed_extensions))):
+            return jsonify({"error": "Only CSV, PDF, and XLSX files are allowed"}), 400
 
-        result = cloudinary.uploader.upload(file, resource_type="raw")
+        result = cloudinary.uploader.upload(file, resource_type="auto")
+        file_url = result.get("secure_url")
+        download_url = f"{file_url}?fl_attachment={file.filename}"
 
         return jsonify({
             "message": "File uploaded successfully",
-            "url": result.get("secure_url")
+            "download_url": download_url
         }), 200
-
-    except Exception as e:
-        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-
-
-@app.route("/download", methods= ["GET"])
-def download():
-    try:
-        file_link = request.args.get('file_link')
-        if not file_link:
-            return jsonify({"error": "File link is required!"}), 400
-
-        if not validators.url(file_link):
-            return jsonify({"error": "Invalid file link!"}), 400
-        return redirect(file_link)
 
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
