@@ -16,7 +16,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "your_secret_key")
 
 @app.route("/")
 def home():
-    return render_template("index.html", title="Home")
+    return render_template("login.html", title="Login")
 
 
 
@@ -113,30 +113,46 @@ def login():
 
 
 @app.route("/upload", methods=["POST"])
+@app.route("/upload", methods=["POST"])
 def upload():
     try:
-        if 'file' not in request.files:
-            return jsonify({"error": "No file part in the request"}), 400
+        if 'pdf' not in request.files:
+            return jsonify({"error": "No PDF part in the request"}), 400
+        if 'image' not in request.files:
+            return jsonify({"error": "No image part in the request"}), 400
+        if 'name' not in request.form:
+            return jsonify({"error": "No name provided in the request"}), 400
+        pdf_file = request.files['pdf']
+        image_file = request.files['image']
+        name = request.form['name']
+        if pdf_file.filename == '':
+            return jsonify({"error": "No PDF file selected for uploading"}), 400
+        if image_file.filename == '':
+            return jsonify({"error": "No image file selected for uploading"}), 400
 
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({"error": "No file selected for uploading"}), 400
+        # Upload PDF file to Cloudinary
+        pdf_result = cloudinary.uploader.upload(pdf_file, resource_type="auto")
+        pdf_url = pdf_result.get("secure_url")
 
-        allowed_types = ['text/csv', 'application/pdf', 
-                         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
-        allowed_extensions = ['.csv', '.pdf', '.xlsx']
-        
-        if not (file.content_type in allowed_types or file.filename.endswith(tuple(allowed_extensions))):
-            return jsonify({"error": "Only CSV, PDF, and XLSX files are allowed"}), 400
+        # Upload image file to Cloudinary
+        image_result = cloudinary.uploader.upload(image_file, resource_type="auto")
+        image_url = image_result.get("secure_url")
 
-        result = cloudinary.uploader.upload(file, resource_type="auto")
-        file_url = result.get("secure_url")
-        download_url = f"{file_url}?fl_attachment={file.filename}"
+        # Prepare response
+        response = {
+            "message": "Files uploaded successfully",
+            "name": name,
+            "pdf_url": pdf_url,
+            "image_url": image_url,
+        }
 
-        return jsonify({
-            "message": "File uploaded successfully",
-            "download_url": download_url
-        }), 200
+        return jsonify(response), 200
 
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+
+
+@app.route("/signup")
+def signup():
+    return render_template("signup.html")

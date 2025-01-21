@@ -3,9 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Redirecting to Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <!-- Meta tag for automatic redirection -->
+    <meta http-equiv="refresh" content="0; URL=/login">
 </head>
 <body>
-    <h1> Backend Start sucessfully.</h1>
+    <header>
+        <h1>Welcome to My Flask App</h1>
+    </header>
+    <main>
+        <p>If you are not redirected automatically, <a href="/login">click here</a>.</p>
+    </main>
+    <footer>
+        <p>&copy; 2025 My Flask App</p>
+    </footer>
 </body>
 </html>
