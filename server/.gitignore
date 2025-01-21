@@ -1,0 +1,58 @@
+
+# Byte-compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+env/
+venv/
+
+# Environment variables
+.env
+
+# Flask-related files
+instance/
+*.sqlite3
+*.db
+
+# Logs and debugging
+*.log
+logs/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Pip dependency files
+pip-log.txt
+
+# Python packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+*.manifest
+
+# Cache files
+*.cache
+*.bak
+*.tmp
+
+# Pytest
+htmlcov/
+.coverage
+.pytest_cache/
+.tox/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Other files
+*.~lock.*
+*.orig
