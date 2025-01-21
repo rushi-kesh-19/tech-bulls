@@ -1,9 +1,18 @@
 from flask import render_template, request, jsonify
 from app import app, mongo
-from datetime import datetime
 # import random
 from app.utils import generate_random_user
+from flask import Flask, request, jsonify
+from flask_pymongo import PyMongo
+from bson.objectid import ObjectId
+from werkzeug.security import generate_password_hash, check_password_hash
+import jwt
+import datetime
+import os
 
+
+
+SECRET_KEY = os.getenv("SECRET_KEY", "your_secret_key")
 
 @app.route("/")
 def home():
@@ -21,20 +30,20 @@ def add_user():
         # data = request.get_json(silent=True)
         username = data.get("username")
         password = data.get("password")
-        parent_email = data.get("email")
+        email = data.get("email")
+
+        hashed_password = generate_password_hash(password)
 
 
-        if not username or not password:
+        if not username or not email:
             return jsonify({"error": "Username and password are required!"}), 400
         
         user_data = {
             "username": username,
-            "email": parent_email,
-            "password": password,
-            "health_data": [],
-            "created_at": datetime.utcnow()
+            "email": email,
+            "password": hashed_password
         }
-        mongo.cx['remote'].users.insert_one(user_data) 
+        mongo.cx['hack2hire'].users.insert_one(user_data) 
         return jsonify({"message": "User added successfully!"})
     
 
@@ -42,36 +51,44 @@ def add_user():
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 
+
+
+
 @app.route("/login", methods=["POST"])
 def login():
-        
-        try:
-            if not request.is_json:
-                return jsonify({"error": "Content-Type must be 'application/json'"}), 415
+    try:
+        if not request.is_json:
+            return jsonify({"error": "Content-Type must be 'application/json'"}), 415
 
-            data = request.get_json(silent=True)
-            if data is None:
-                return jsonify({"error": "Invalid or empty JSON payload"}), 400
+        data = request.get_json(silent=True)
+        if data is None:
+            return jsonify({"error": "Invalid or empty JSON payload"}), 400
 
-            username = data.get("username")
-            password = data.get("password")
+        username = data.get("username")
+        password = data.get("password")
 
-            if not username or not password:
-                return jsonify({"error": "Username and password are required!"}), 400
-        
-            user = mongo.cx['remote'].users.find_one({"username": username})
-            if not user:
-                return jsonify({"error": "Invalid username or password"}), 401
-        
-            if user["password"] != password:
-                return jsonify({"error": "Wrong Password"}), 401
-        
-            return jsonify({"message": f"Welcome back, {username}!", "username": username}), 200
-        except Exception as e:
-            return jsonify({"error": f"Failed to retrieve history: {str(e)}"}), 500
+        if not username or not password:
+            return jsonify({"error": "Username and password are required!"}), 400
 
-        
+        print("Just before user")
+        user = mongo.cx['hack2hire']['users'].find_one({"username": username})
 
+        print(user)
+        if not user:
+            return jsonify({"error": "Invalid username or password"}), 401
 
+        # Verify the password
+        if not check_password_hash(user["password"], password):
+            return jsonify({"error": "Wrong password"}), 401
 
+        # Generate JWT token
+        token = jwt.encode({
+            "user_id": str(user["_id"]),
+            "username": username,
+            "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+        }, SECRET_KEY, algorithm="HS256")
 
+        return jsonify({"message": f"Welcome back, {username}!", "token": token}), 200
+
+    except Exception as e:
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
