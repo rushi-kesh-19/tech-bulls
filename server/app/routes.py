@@ -1,6 +1,5 @@
-from flask import render_template, request, jsonify
+from flask import render_template, request, jsonify, redirect
 from app import app, mongo
-# import random
 from app.utils import generate_random_user
 from flask import Flask, request, jsonify
 from flask_pymongo import PyMongo
@@ -9,7 +8,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 import datetime
 import os
-
+import cloudinary.uploader
+import validators
 
 
 SECRET_KEY = os.getenv("SECRET_KEY", "your_secret_key")
@@ -27,7 +27,7 @@ def add_user():
         if not request.is_json:
             return jsonify({"error": "Content-Type must be 'application/json'"}), 415
         data = generate_random_user()
-        # data = request.get_json(silent=True)
+        data = request.get_json(silent=True)
         username = data.get("username")
         password = data.get("password")
         email = data.get("email")
@@ -35,8 +35,8 @@ def add_user():
         hashed_password = generate_password_hash(password)
 
 
-        if not username or not email:
-            return jsonify({"error": "Username and password are required!"}), 400
+        if not username or not email or not password:
+            return jsonify({"error": "Username, password and email are required!"}), 400
         
         user_data = {
             "username": username,
@@ -49,8 +49,6 @@ def add_user():
 
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
-
-
 
 
 
@@ -76,12 +74,8 @@ def login():
         print(user)
         if not user:
             return jsonify({"error": "Invalid username or password"}), 401
-
-        # Verify the password
         if not check_password_hash(user["password"], password):
             return jsonify({"error": "Wrong password"}), 401
-
-        # Generate JWT token
         token = jwt.encode({
             "user_id": str(user["_id"]),
             "username": username,
@@ -89,6 +83,45 @@ def login():
         }, SECRET_KEY, algorithm="HS256")
 
         return jsonify({"message": f"Welcome back, {username}!", "token": token}), 200
+
+    except Exception as e:
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+
+@app.route("/upload", methods=["POST"])
+def upload():
+    try:
+        if 'file' not in request.files:
+            return jsonify({"error": "No file part in the request"}), 400
+        file = request.files['file']
+
+        if file.filename == '':
+            return jsonify({"error": "No file selected for uploading"}), 400
+
+        if file.content_type != 'application/pdf':
+            return jsonify({"error": "Only PDF files are allowed"}), 400
+
+        result = cloudinary.uploader.upload(file, resource_type="raw")
+
+        return jsonify({
+            "message": "File uploaded successfully",
+            "url": result.get("secure_url")
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+
+@app.route("/download", methods= ["GET"])
+def download():
+    try:
+        file_link = request.args.get('file_link')
+        if not file_link:
+            return jsonify({"error": "File link is required!"}), 400
+
+        if not validators.url(file_link):
+            return jsonify({"error": "Invalid file link!"}), 400
+        return redirect(file_link)
 
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
