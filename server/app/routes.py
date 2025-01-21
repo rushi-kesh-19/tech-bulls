@@ -112,7 +112,7 @@ def login():
 #         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 
-@app.route("/upload", methods=["POST"])
+# @app.route("/upload", methods=["POST"])
 @app.route("/upload", methods=["POST"])
 def upload():
     try:
@@ -130,21 +130,25 @@ def upload():
         if image_file.filename == '':
             return jsonify({"error": "No image file selected for uploading"}), 400
 
-        # Upload PDF file to Cloudinary
         pdf_result = cloudinary.uploader.upload(pdf_file, resource_type="auto")
         pdf_url = pdf_result.get("secure_url")
 
-        # Upload image file to Cloudinary
         image_result = cloudinary.uploader.upload(image_file, resource_type="auto")
         image_url = image_result.get("secure_url")
 
-        # Prepare response
         response = {
             "message": "Files uploaded successfully",
             "name": name,
             "pdf_url": pdf_url,
             "image_url": image_url,
         }
+
+        info_data = {
+            "name": name,
+            "pdf_url": pdf_url,
+            "image_url": image_url
+        }
+        mongo.cx['hack2hire'].info.insert_one(info_data) 
 
         return jsonify(response), 200
 
@@ -156,3 +160,4 @@ def upload():
 @app.route("/signup")
 def signup():
     return render_template("signup.html")
+
